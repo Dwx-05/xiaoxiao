@@ -1,0 +1,234 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>饺子表情包两两消消乐</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      background-color: #f0f0f0;
+      margin: 0;
+      padding: 20px;
+    }
+    .game-container {
+      background-color: #fff;
+      padding: 15px;
+      border-radius: 10px;
+      box-shadow: 0 0 10px rgba(0,0,0,0.1);
+    }
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(6, 80px);
+      gap: 10px;
+    }
+    .cell {
+      width: 80px;
+      height: 80px;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: transform 0.2s;
+      background-size: cover;
+      background-position: center;
+      background-color: #fff;
+    }
+    .cell:hover {
+      transform: scale(1.05);
+    }
+    .score-board {
+      margin-bottom: 15px;
+      font-size: 20px;
+      font-weight: bold;
+    }
+    .controls {
+      margin-top: 15px;
+    }
+    button {
+      padding: 8px 15px;
+      background-color: #ff9e7d;
+      color: white;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+      font-size: 16px;
+    }
+    button:hover {
+      background-color: #ff7a50;
+    }
+  </style>
+</head>
+<body>
+  <div class="score-board">分数: <span id="score">0</span></div>
+  <div class="game-container">
+    <div id="grid" class="grid"></div>
+  </div>
+  <div class="controls">
+    <button id="restart">重新开始</button>
+  </div>
+
+  <script>
+    // 新提供的6张饺子表情包图片链接
+    const IMAGE_PATHS = [
+      'https://p11-flow-imagex-download-sign.byteimg.com/tos-cn-i-a9rns2rl98/d38c0a57b2e542dbb492271cfa6fed7e.jpg~tplv-a9rns2rl98-24:720:720.image?rcl=202511121425562D2861C213C15572FB68&rk3s=8e244e95&rrcfp=8a172a1a&x-expires=1763533556&x-signature=wYE1fHebLr6Fn69jRX6XqzRisWM%3D', // 我最棒
+      'https://p11-flow-imagex-download-sign.byteimg.com/tos-cn-i-a9rns2rl98/f35dbc7296ea48c7b13877715ca800b8.jpg~tplv-a9rns2rl98-24:720:720.image?rcl=202511121425562D2861C213C15572FB68&rk3s=8e244e95&rrcfp=8a172a1a&x-expires=1763533556&x-signature=6mmXtJudMGKpslG6EBBs%2BXhsudA%3D', // 不屑一顾
+      'https://p11-flow-imagex-download-sign.byteimg.com/tos-cn-i-a9rns2rl98/3e857a5141c3480da394dd5670e76efc.jpg~tplv-a9rns2rl98-24:720:720.image?rcl=202511121425562D2861C213C15572FB68&rk3s=8e244e95&rrcfp=8a172a1a&x-expires=1763533556&x-signature=MVy2cZrnGlcNeunnGTQUoTrK6mE%3D', // 实在撑不住了
+      'https://p11-flow-imagex-download-sign.byteimg.com/tos-cn-i-a9rns2rl98/28010b6466e84680ac93da85c1486e07.png~tplv-a9rns2rl98-24:720:720.image?rcl=202511121425562D2861C213C15572FB68&rk3s=8e244e95&rrcfp=8a172a1a&x-expires=1763533556&x-signature=5PbS2SP8l2UMVB34TFTGAvdg5WY%3D', // 呜呜呜
+      'https://p11-flow-imagex-download-sign.byteimg.com/tos-cn-i-a9rns2rl98/86c35c673afb469387d35708a1dd57f5.jpg~tplv-a9rns2rl98-24:720:720.image?rcl=202511121425562D2861C213C15572FB68&rk3s=8e244e95&rrcfp=8a172a1a&x-expires=1763533556&x-signature=NFNPbgJXbkh6dk1bO6UarpcSkZs%3D', // 就这?
+      'https://p11-flow-imagex-download-sign.byteimg.com/tos-cn-i-a9rns2rl98/0427ad4edaa4418e88f18dc1adfe1398.jpg~tplv-a9rns2rl98-24:720:720.image?rcl=202511121425562D2861C213C15572FB68&rk3s=8e244e95&rrcfp=8a172a1a&x-expires=1763533556&x-signature=lyaxVh3FHFoBRfwkaymwChuXCKA%3D'  // 气到爆炸
+    ];
+
+    // 游戏配置
+    const ROWS = 6;    // 行数
+    const COLS = 6;    // 列数
+    let grid = [];     // 游戏网格数据
+    let score = 0;     // 分数
+    let selectedCell = null;  // 选中的单元格
+
+    // 初始化游戏
+    function initGame() {
+      grid = [];
+      score = 0;
+      document.getElementById('score').textContent = score;
+      const gridElement = document.getElementById('grid');
+      gridElement.innerHTML = '';
+
+      // 生成初始网格
+      for (let i = 0; i < ROWS; i++) {
+        grid[i] = [];
+        for (let j = 0; j < COLS; j++) {
+          const type = Math.floor(Math.random() * IMAGE_PATHS.length);
+          grid[i][j] = type;
+
+          // 创建单元格
+          const cell = document.createElement('div');
+          cell.className = 'cell';
+          cell.dataset.row = i;
+          cell.dataset.col = j;
+          cell.style.backgroundImage = `url(${IMAGE_PATHS[type]})`;
+          cell.addEventListener('click', handleCellClick);
+          gridElement.appendChild(cell);
+        }
+      }
+    }
+
+    // 处理单元格点击（支持上下左右相邻两两消除）
+    function handleCellClick(e) {
+      const row = parseInt(e.target.dataset.row);
+      const col = parseInt(e.target.dataset.col);
+      const currentCell = { row, col };
+
+      // 首次选中单元格
+      if (!selectedCell) {
+        selectedCell = currentCell;
+        e.target.style.border = '3px solid #ff6b6b'; // 选中边框
+        return;
+      }
+
+      // 点击同一单元格，取消选中
+      if (selectedCell.row === row && selectedCell.col === col) {
+        e.target.style.border = '';
+        selectedCell = null;
+        return;
+      }
+
+      // 检查是否为上下左右相邻（核心逻辑）
+      const isAdjacent = 
+        (Math.abs(selectedCell.row - row) === 1 && selectedCell.col === col) || // 上下相邻
+        (Math.abs(selectedCell.col - col) === 1 && selectedCell.row === row);  // 左右相邻
+
+      if (isAdjacent) {
+        // 相邻且图片相同则消除
+        if (grid[selectedCell.row][selectedCell.col] === grid[row][col]) {
+          const matches = [selectedCell, currentCell];
+          // 清除选中状态
+          document.querySelector(`.cell[data-row="${selectedCell.row}"][data-col="${selectedCell.col}"]`).style.border = '';
+          selectedCell = null;
+          removeMatches(matches); // 执行消除
+        } else {
+          // 相邻但图片不同，切换选中
+          document.querySelector(`.cell[data-row="${selectedCell.row}"][data-col="${selectedCell.col}"]`).style.border = '';
+          selectedCell = currentCell;
+          e.target.style.border = '3px solid #ff6b6b';
+        }
+      } else {
+        // 不相邻，直接切换选中
+        document.querySelector(`.cell[data-row="${selectedCell.row}"][data-col="${selectedCell.col}"]`).style.border = '';
+        selectedCell = currentCell;
+        e.target.style.border = '3px solid #ff6b6b';
+      }
+    }
+
+    // 移除匹配元素并更新界面
+    function removeMatches(matches) {
+      if (matches.length === 0) return;
+
+      // 计分（每个元素10分，两个共20分）
+      score += matches.length * 10;
+      document.getElementById('score').textContent = score;
+
+      // 隐藏消除的元素
+      matches.forEach(({ row, col }) => {
+        grid[row][col] = null;
+        const cell = document.querySelector(`.cell[data-row="${row}"][data-col="${col}"]`);
+        cell.style.backgroundImage = 'none';
+        cell.style.backgroundColor = '#f0f0f0';
+      });
+
+      // 延迟下落和填充，增强视觉效果
+      setTimeout(() => {
+        dropCells();    // 元素下落
+        fillNewCells(); // 顶部补充新元素
+      }, 300);
+    }
+
+    // 元素下落填充空白
+    function dropCells() {
+      for (let j = 0; j < COLS; j++) {
+        let emptyCount = 0;
+        // 从下往上处理每一列
+        for (let i = ROWS - 1; i >= 0; i--) {
+          if (grid[i][j] === null) {
+            emptyCount++;
+          } else if (emptyCount > 0) {
+            // 下落操作
+            grid[i + emptyCount][j] = grid[i][j];
+            grid[i][j] = null;
+            // 更新UI
+            const targetCell = document.querySelector(`.cell[data-row="${i + emptyCount}"][data-col="${j}"]`);
+            targetCell.style.backgroundImage = `url(${IMAGE_PATHS[grid[i + emptyCount][j]]})`;
+            const sourceCell = document.querySelector(`.cell[data-row="${i}"][data-col="${j}"]`);
+            sourceCell.style.backgroundImage = 'none';
+            sourceCell.style.backgroundColor = '#f0f0f0';
+          }
+        }
+      }
+    }
+
+    // 顶部补充新元素
+    function fillNewCells() {
+      for (let j = 0; j < COLS; j++) {
+        for (let i = 0; i < ROWS; i++) {
+          if (grid[i][j] === null) {
+            // 随机生成新图片
+            const type = Math.floor(Math.random() * IMAGE_PATHS.length);
+            grid[i][j] = type;
+            // 更新UI
+            const cell = document.querySelector(`.cell[data-row="${i}"][data-col="${j}"]`);
+            cell.style.backgroundImage = `url(${IMAGE_PATHS[type]})`;
+            cell.style.backgroundColor = '';
+          }
+        }
+      }
+    }
+
+    // 重新开始游戏
+    document.getElementById('restart').addEventListener('click', initGame);
+
+    // 初始化游戏
+    initGame();
+  </script>
+</body>
+</html>
